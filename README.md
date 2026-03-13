@@ -14,7 +14,7 @@ A simple 4x4 handwired macropad with rotary encoder.
 - 15x Cherry MX compatible switches
 - 1x Rotary encoder (EC11)
 - 16x 1N4148 diodes
-- 4x 3M 10mm metal screws
+- 4x 3M 10mm DIN 965 screws (or similar)
 - Wire for handwiring
 - 15x Keycaps (any profile)
 - MX encoder adapter: [Thingiverse Thing:3770166](https://www.thingiverse.com/thing:3770166)
