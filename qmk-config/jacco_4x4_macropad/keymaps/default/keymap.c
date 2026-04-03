@@ -5,7 +5,12 @@
 #define NUM_MACROS 16
 #define MAX_MACRO_LEN 64
 #define NUM_LAYERS 16
-#define MAX_MACRO_KEYS 5
+#define MAX_MACRO_KEYS 6
+#define RAW_HID_FRAGMENT_BUFFER_SIZE 512
+
+#define SET_ENCODER_COMMAND 0
+#define SET_MACRO_COMMAND 1
+#define SET_REPEATING_MACRO_COMMAND 2
 
 typedef struct
 {
@@ -18,6 +23,13 @@ uint8_t macro_len[NUM_LAYERS][NUM_MACROS];
 int16_t macro_repeating[NUM_LAYERS][NUM_MACROS];
 
 uint16_t encoder_actions[NUM_LAYERS][2];
+
+uint8_t packet_buffer[RAW_HID_FRAGMENT_BUFFER_SIZE];
+uint8_t expected_transaction_id = 0;
+uint8_t expected_fragments = 0;
+uint8_t received_fragments = 0;
+uint16_t packet_buffer_length = 0;
+bool fragment_transaction_active = false;
 
 enum custom_keycodes
 {
@@ -122,10 +134,16 @@ bool encoder_update_user(uint8_t index, bool clockwise)
     return false;
 }
 
-void consume_macro_keycodes(uint8_t layer, uint8_t macro_index, uint8_t macro_length, uint8_t **data_ptr)
+bool consume_macro_keycodes(uint8_t layer, uint8_t macro_index, uint8_t macro_length, const uint8_t **data_ptr, const uint8_t *data_end)
 {
     for (uint8_t i = 0; i < macro_length && i < MAX_MACRO_LEN; i++)
     {
+        if (*data_ptr >= data_end)
+        {
+            printf("Received truncated macro update for layer %d, macro %d\n", layer, macro_index);
+            return false;
+        }
+
         uint8_t actions_length = (*data_ptr)[0];
         macros[layer][macro_index][i].key_count = actions_length;
         printf("Macro has %d actions\n", actions_length);
@@ -133,39 +151,68 @@ void consume_macro_keycodes(uint8_t layer, uint8_t macro_index, uint8_t macro_le
 
         for (uint8_t j = 0; j < actions_length && j < MAX_MACRO_KEYS; j++)
         {
+            if (*data_ptr >= data_end)
+            {
+                printf("Received truncated keycode list for layer %d, macro %d, action %d\n", layer, macro_index, i);
+                return false;
+            }
+
             printf("Reading keycode for layer %d, macro %d, action %d: 0x%04x\n", layer, macro_index, i, (*data_ptr)[0]);
             macros[layer][macro_index][i].keys[j] = (*data_ptr)[0];
             (*data_ptr)++;
         }
     }
+
+    return true;
+}
+
+void apply_macro_update_payload(const uint8_t *data, uint16_t length)
+{
+    if (length < 3)
+    {
+        printf("Received invalid macro update payload (length %d)\n", length);
+        return;
+    }
+
+    uint8_t layer = data[0];
+    uint8_t macro_index = data[1];
+    uint8_t macro_length = data[2];
+
+    printf("Received macro update for layer %d, macro %d, length %d\n", layer, macro_index, macro_length);
+
+    if (layer < NUM_LAYERS && macro_index < NUM_MACROS && macro_length <= MAX_MACRO_LEN)
+    {
+        macro_len[layer][macro_index] = macro_length;
+        const uint8_t *data_ptr = &data[3];
+        consume_macro_keycodes(layer, macro_index, macro_length, &data_ptr, data + length);
+    }
+}
+
+void reset_fragment_transaction(void)
+{
+    fragment_transaction_active = false;
+    packet_buffer_length = 0;
+    expected_transaction_id = 0;
+    expected_fragments = 0;
+    received_fragments = 0;
 }
 
 void raw_hid_receive(uint8_t *data, uint8_t length)
 {
-    uint8_t response[length];
-    memset(response, 0, length);
-    response[0] = 0xFF;
-
-    if (length < 3)
+    if (length < 4)
     {
         printf("Received invalid data over raw HID (length %d)\n", length);
         return;
     }
     uint8_t command = data[0];
-    if (command == 0)
+    printf("Received raw HID packet with command %d, length %d \n", command, length);
+    printf("Data: ");
+    for (uint8_t i = 0; i < length; i++)
     {
-        uint8_t layer = data[1];
-        uint8_t macro_index = data[2];
-        uint8_t macro_length = data[3];
-        printf("Received macro update for layer %d, macro %d, length %d\n", layer, macro_index, macro_length);
-        if (layer < NUM_LAYERS && macro_index < NUM_MACROS && macro_length <= MAX_MACRO_LEN)
-        {
-            macro_len[layer][macro_index] = macro_length;
-            uint8_t *data_ptr = &data[4];
-            consume_macro_keycodes(layer, macro_index, macro_length, &data_ptr);
-        }
+        printf("%02x ", data[i]);
     }
-    else if (command == 1)
+    printf("\n");
+    if (command == SET_ENCODER_COMMAND)
     {
         uint8_t layer = data[1];
         uint8_t clockwise_action = data[2];
@@ -176,6 +223,98 @@ void raw_hid_receive(uint8_t *data, uint8_t length)
             encoder_actions[layer][0] = counterclockwise_action;
             encoder_actions[layer][1] = clockwise_action;
         }
+    }
+    else if (command == SET_MACRO_COMMAND)
+    {
+        if (length < 5)
+        {
+            printf("Received invalid fragmented raw HID packet length %d\n", length);
+            reset_fragment_transaction();
+            return;
+        }
+
+        uint8_t transaction_id = data[1];
+        uint8_t total_fragments = data[2];
+        uint8_t fragment_index = data[3];
+        uint8_t fragment_length = data[4];
+
+        if (total_fragments == 0 || fragment_index >= total_fragments)
+        {
+            printf("Received invalid fragmented raw HID header\n");
+            reset_fragment_transaction();
+            return;
+        }
+
+        if (fragment_length > length - 5)
+        {
+            printf("Received fragmented raw HID chunk with invalid length %d\n", fragment_length);
+            reset_fragment_transaction();
+            return;
+        }
+
+        if (fragment_index == 0)
+        {
+            reset_fragment_transaction();
+            fragment_transaction_active = true;
+            expected_transaction_id = transaction_id;
+            expected_fragments = total_fragments;
+            received_fragments = 0;
+            packet_buffer_length = 0;
+        }
+
+        if (!fragment_transaction_active || transaction_id != expected_transaction_id || total_fragments != expected_fragments)
+        {
+            printf("Received out-of-order fragmented raw HID packet\n");
+            reset_fragment_transaction();
+            return;
+        }
+
+        if (fragment_index != received_fragments)
+        {
+            printf("Received unexpected fragment %d, expected %d\n", fragment_index, received_fragments);
+            reset_fragment_transaction();
+            return;
+        }
+
+        if (packet_buffer_length + fragment_length > RAW_HID_FRAGMENT_BUFFER_SIZE)
+        {
+            printf("Fragmented raw HID payload too large\n");
+            reset_fragment_transaction();
+            return;
+        }
+
+        memcpy(&packet_buffer[packet_buffer_length], &data[5], fragment_length);
+        packet_buffer_length += fragment_length;
+        received_fragments++;
+
+        if (received_fragments == expected_fragments)
+        {
+            apply_macro_update_payload(packet_buffer, packet_buffer_length);
+            reset_fragment_transaction();
+        }
+    }
+    elif (command == SET_REPEATING_MACRO_COMMAND)
+    {
+        if (length != 6)
+        {
+            printf("Received invalid repeating macro raw HID packet length %d\n", length);
+            return;
+        }
+
+        uint8_t layer = data[1];
+        uint8_t macro_index = data[2];
+        int16_t repeat_interval = (data[3] << 8) | data[4];
+
+        printf("Received repeating macro update for layer %d, macro %d, interval %d\n", layer, macro_index, repeat_interval);
+
+        if (layer < NUM_LAYERS && macro_index < NUM_MACROS)
+        {
+            macro_repeating[layer][macro_index] = repeat_interval;
+        }
+    }
+    else
+    {
+        printf("Received unknown raw HID command %d\n", command);
     }
 }
 
