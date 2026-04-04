@@ -151,15 +151,16 @@ bool consume_macro_keycodes(uint8_t layer, uint8_t macro_index, uint8_t macro_le
 
         for (uint8_t j = 0; j < actions_length && j < MAX_MACRO_KEYS; j++)
         {
-            if (*data_ptr >= data_end)
+            if ((*data_ptr) + 1 >= data_end)
             {
                 printf("Received truncated keycode list for layer %d, macro %d, action %d\n", layer, macro_index, i);
                 return false;
             }
 
-            printf("Reading keycode for layer %d, macro %d, action %d: 0x%04x\n", layer, macro_index, i, (*data_ptr)[0]);
-            macros[layer][macro_index][i].keys[j] = (*data_ptr)[0];
-            (*data_ptr)++;
+            uint16_t keycode = ((uint16_t)(*data_ptr)[0] << 8) | (*data_ptr)[1];
+            printf("Reading keycode for layer %d, macro %d, action %d: 0x%04x\n", layer, macro_index, i, keycode);
+            macros[layer][macro_index][i].keys[j] = keycode;
+            (*data_ptr) += 2;
         }
     }
 
@@ -214,9 +215,15 @@ void raw_hid_receive(uint8_t *data, uint8_t length)
     printf("\n");
     if (command == SET_ENCODER_COMMAND)
     {
+        if (length < 6)
+        {
+            printf("Received invalid encoder packet length %d\n", length);
+            return;
+        }
+
         uint8_t layer = data[1];
-        uint8_t clockwise_action = data[2];
-        uint8_t counterclockwise_action = data[3];
+        uint16_t clockwise_action = ((uint16_t)data[2] << 8) | data[3];
+        uint16_t counterclockwise_action = ((uint16_t)data[4] << 8) | data[5];
         printf("Received encoder update for layer %d, clockwise %d, counterclockwise %d\n", layer, clockwise_action, counterclockwise_action);
         if (layer < NUM_LAYERS)
         {
@@ -293,7 +300,7 @@ void raw_hid_receive(uint8_t *data, uint8_t length)
             reset_fragment_transaction();
         }
     }
-    elif (command == SET_REPEATING_MACRO_COMMAND)
+    else if (command == SET_REPEATING_MACRO_COMMAND)
     {
         if (length != 6)
         {

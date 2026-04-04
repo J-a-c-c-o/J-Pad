@@ -1,0 +1,188 @@
+from __future__ import annotations
+
+from enum import IntEnum
+
+
+class QMK(IntEnum):
+	QK_LCTL = 0x0100
+	QK_LSFT = 0x0200
+	QK_LALT = 0x0400
+	QK_LGUI = 0x0800
+	QK_RCTL = 0x1100
+	QK_RSFT = 0x1200
+	QK_RALT = 0x1400
+	QK_RGUI = 0x1800
+	QK_USER = 0x7E40
+
+
+def _build_basic_keycodes() -> dict[str, int]:
+	keys: dict[str, int] = {
+		"KC_NO": 0x0000,
+		"KC_TRANSPARENT": 0x0001,
+	}
+
+	for i, letter in enumerate("ABCDEFGHIJKLMNOPQRSTUVWXYZ", start=0x0004):
+		keys[f"KC_{letter}"] = i
+
+	for i, number in enumerate(["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"], start=0x001E):
+		keys[f"KC_{number}"] = i
+
+	# Remaining core 8-bit HID keycodes used by QMK.
+	explicit = {
+		"KC_ENTER": 0x0028,
+		"KC_ESCAPE": 0x0029,
+		"KC_BACKSPACE": 0x002A,
+		"KC_TAB": 0x002B,
+		"KC_SPACE": 0x002C,
+		"KC_MINUS": 0x002D,
+		"KC_EQUAL": 0x002E,
+		"KC_LEFT_BRACKET": 0x002F,
+		"KC_RIGHT_BRACKET": 0x0030,
+		"KC_BACKSLASH": 0x0031,
+		"KC_NONUS_HASH": 0x0032,
+		"KC_SEMICOLON": 0x0033,
+		"KC_QUOTE": 0x0034,
+		"KC_GRAVE": 0x0035,
+		"KC_COMMA": 0x0036,
+		"KC_DOT": 0x0037,
+		"KC_SLASH": 0x0038,
+		"KC_CAPS_LOCK": 0x0039,
+		"KC_F1": 0x003A,
+		"KC_F2": 0x003B,
+		"KC_F3": 0x003C,
+		"KC_F4": 0x003D,
+		"KC_F5": 0x003E,
+		"KC_F6": 0x003F,
+		"KC_F7": 0x0040,
+		"KC_F8": 0x0041,
+		"KC_F9": 0x0042,
+		"KC_F10": 0x0043,
+		"KC_F11": 0x0044,
+		"KC_F12": 0x0045,
+		"KC_PRINT_SCREEN": 0x0046,
+		"KC_SCROLL_LOCK": 0x0047,
+		"KC_PAUSE": 0x0048,
+		"KC_INSERT": 0x0049,
+		"KC_HOME": 0x004A,
+		"KC_PAGE_UP": 0x004B,
+		"KC_DELETE": 0x004C,
+		"KC_END": 0x004D,
+		"KC_PAGE_DOWN": 0x004E,
+		"KC_RIGHT": 0x004F,
+		"KC_LEFT": 0x0050,
+		"KC_DOWN": 0x0051,
+		"KC_UP": 0x0052,
+		"KC_NUM_LOCK": 0x0053,
+		"KC_KP_SLASH": 0x0054,
+		"KC_KP_ASTERISK": 0x0055,
+		"KC_KP_MINUS": 0x0056,
+		"KC_KP_PLUS": 0x0057,
+		"KC_KP_ENTER": 0x0058,
+		"KC_KP_1": 0x0059,
+		"KC_KP_2": 0x005A,
+		"KC_KP_3": 0x005B,
+		"KC_KP_4": 0x005C,
+		"KC_KP_5": 0x005D,
+		"KC_KP_6": 0x005E,
+		"KC_KP_7": 0x005F,
+		"KC_KP_8": 0x0060,
+		"KC_KP_9": 0x0061,
+		"KC_KP_0": 0x0062,
+		"KC_KP_DOT": 0x0063,
+		"KC_NONUS_BACKSLASH": 0x0064,
+		"KC_APPLICATION": 0x0065,
+		"KC_KB_POWER": 0x0066,
+		"KC_KP_EQUAL": 0x0067,
+		"KC_F13": 0x0068,
+		"KC_F14": 0x0069,
+		"KC_F15": 0x006A,
+		"KC_F16": 0x006B,
+		"KC_F17": 0x006C,
+		"KC_F18": 0x006D,
+		"KC_F19": 0x006E,
+		"KC_F20": 0x006F,
+		"KC_F21": 0x0070,
+		"KC_F22": 0x0071,
+		"KC_F23": 0x0072,
+		"KC_F24": 0x0073,
+		"KC_EXECUTE": 0x0074,
+		"KC_HELP": 0x0075,
+		"KC_MENU": 0x0076,
+		"KC_SELECT": 0x0077,
+		"KC_STOP": 0x0078,
+		"KC_AGAIN": 0x0079,
+		"KC_UNDO": 0x007A,
+		"KC_CUT": 0x007B,
+		"KC_COPY": 0x007C,
+		"KC_PASTE": 0x007D,
+		"KC_FIND": 0x007E,
+		"KC_KB_MUTE": 0x007F,
+		"KC_KB_VOLUME_UP": 0x0080,
+		"KC_KB_VOLUME_DOWN": 0x0081,
+		"KC_LOCKING_CAPS_LOCK": 0x0082,
+		"KC_LOCKING_NUM_LOCK": 0x0083,
+		"KC_LOCKING_SCROLL_LOCK": 0x0084,
+		"KC_KP_COMMA": 0x0085,
+		"KC_KP_EQUAL_AS400": 0x0086,
+		"KC_INTERNATIONAL_1": 0x0087,
+		"KC_INTERNATIONAL_2": 0x0088,
+		"KC_INTERNATIONAL_3": 0x0089,
+		"KC_INTERNATIONAL_4": 0x008A,
+		"KC_INTERNATIONAL_5": 0x008B,
+		"KC_INTERNATIONAL_6": 0x008C,
+		"KC_INTERNATIONAL_7": 0x008D,
+		"KC_INTERNATIONAL_8": 0x008E,
+		"KC_INTERNATIONAL_9": 0x008F,
+		"KC_LANGUAGE_1": 0x0090,
+		"KC_LANGUAGE_2": 0x0091,
+		"KC_LANGUAGE_3": 0x0092,
+		"KC_LANGUAGE_4": 0x0093,
+		"KC_LANGUAGE_5": 0x0094,
+		"KC_LANGUAGE_6": 0x0095,
+		"KC_LANGUAGE_7": 0x0096,
+		"KC_LANGUAGE_8": 0x0097,
+		"KC_LANGUAGE_9": 0x0098,
+		"KC_ALTERNATE_ERASE": 0x0099,
+		"KC_SYSTEM_REQUEST": 0x009A,
+		"KC_CANCEL": 0x009B,
+		"KC_CLEAR": 0x009C,
+		"KC_PRIOR": 0x009D,
+		"KC_RETURN": 0x009E,
+		"KC_SEPARATOR": 0x009F,
+		"KC_OUT": 0x00A0,
+		"KC_OPER": 0x00A1,
+		"KC_CLEAR_AGAIN": 0x00A2,
+		"KC_CRSEL": 0x00A3,
+		"KC_EXSEL": 0x00A4,
+		"KC_LEFT_CTRL": 0x00E0,
+		"KC_LEFT_SHIFT": 0x00E1,
+		"KC_LEFT_ALT": 0x00E2,
+		"KC_LEFT_GUI": 0x00E3,
+		"KC_RIGHT_CTRL": 0x00E4,
+		"KC_RIGHT_SHIFT": 0x00E5,
+		"KC_RIGHT_ALT": 0x00E6,
+		"KC_RIGHT_GUI": 0x00E7,
+	}
+	keys.update(explicit)
+	return keys
+
+
+BASIC_KEYCODES = _build_basic_keycodes()
+
+ALIASES = {
+	"KC_TRNS": BASIC_KEYCODES["KC_TRANSPARENT"],
+	"KC_ENT": BASIC_KEYCODES["KC_ENTER"],
+	"KC_ESC": BASIC_KEYCODES["KC_ESCAPE"],
+	"KC_BSPC": BASIC_KEYCODES["KC_BACKSPACE"],
+	"KC_SPC": BASIC_KEYCODES["KC_SPACE"],
+	"KC_DEL": BASIC_KEYCODES["KC_DELETE"],
+	"KC_C": BASIC_KEYCODES["KC_C"],
+}
+
+CONSTANTS: dict[str, int] = {}
+CONSTANTS.update(BASIC_KEYCODES)
+CONSTANTS.update(ALIASES)
+CONSTANTS.update({name: member.value for name, member in QMK.__members__.items()})
+
+for layer in range(16):
+	CONSTANTS[f"SWITCH_LAYER_{layer}"] = QMK.QK_USER + layer

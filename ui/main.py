@@ -2,6 +2,8 @@ import sys
 import hid
 from time import sleep
 
+from keycode_converter import step
+
 vendor_id     = 0xfeed
 product_id    = 0x0000
 
@@ -50,7 +52,9 @@ def build_macro_update(layer, macro_index, macro_steps):
 
     for step in macro_steps:
         payload.append(len(step))
-        payload.extend(step)
+        for keycode in step:
+            payload.append((keycode >> 8) & 0xFF)
+            payload.append(keycode & 0xFF)
 
     return payload
 
@@ -67,61 +71,23 @@ def send_fragmented_macro_update(layer, macro_index, macro_steps):
     send_fragmented_report(transaction_id, payload)
 
 if __name__ == '__main__':
+    # On layer 0, key 4 goes to layer 5.
     send_fragmented_macro_update(
         layer=0,
         macro_index=4,
-        macro_steps=[
-            [0x04, 0x05],
-            [0x06, 0x07],
-            [0x08, 0x09],
-            [0x0A, 0x0B],
-            [0x0C, 0x0D],
-            [0x0E, 0x0F],
-            [0x10, 0x11],
-            [0x12, 0x13],
-            [0x14, 0x15],
-            [0x04, 0x05],
-            [0x06, 0x07],
-            [0x08, 0x09],
-            [0x0A, 0x0B],
-            [0x0C, 0x0D],
-            [0x0E, 0x0F],
-            [0x10, 0x11],
-            [0x12, 0x13],
-            [0x14, 0x15],
-            [0x04, 0x05],
-            [0x06, 0x07],
-            [0x08, 0x09],
-            [0x0A, 0x0B],
-            [0x0C, 0x0D],
-            [0x0E, 0x0F],
-            [0x10, 0x11],
-            [0x12, 0x13],
-            [0x14, 0x15],
-            [0x04, 0x05],
-            [0x06, 0x07],
-            [0x08, 0x09],
-            [0x0A, 0x0B],
-            [0x0C, 0x0D],
-            [0x04, 0x05],
-            [0x06, 0x07],
-            [0x08, 0x09],
-            [0x0A, 0x0B],
-            [0x0C, 0x0D],
-            [0x0E, 0x0F],
-            [0x10, 0x11],
-            [0x12, 0x13],
-            [0x14, 0x15],
-            [0x04, 0x05],
-            [0x06, 0x07],
-            [0x08, 0x09],
-            [0x0A, 0x0B],
-            [0x0C, 0x0D],
-            [0x0E, 0x0F],
-            [0x10, 0x11],
-            [0x12, 0x13],
-            [0x14, 0x15],
-            [0x08, 0x09],
-            [0x04, 0x04,0x04, 0x04,0x04, 0x04,0x04, 0x04],
-        ],
+        macro_steps=[step("SWITCH_LAYER_5")],
+    )
+
+    # On layer 5, key 5 sends Ctrl+C.
+    send_fragmented_macro_update(
+        layer=5,
+        macro_index=5,
+        macro_steps=[step("LCTL(KC_C)")],
+    )
+
+    # On layer 5, key 4 returns to layer 0.
+    send_fragmented_macro_update(
+        layer=5,
+        macro_index=4,
+        macro_steps=[step("SWITCH_LAYER_0")],
     )
