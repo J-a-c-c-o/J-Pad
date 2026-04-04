@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
     paths:
       - "qmk-config/**"
       - ".github/workflows/**"
@@ -57,3 +59,24 @@ jobs:
           path: qmk_firmware/.build/**
           include-hidden-files: true
           if-no-files-found: error
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: QMK firmware build for ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          allow_updates: true
+
+      - name: Upload firmware release asset
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: qmk_firmware/jacco_4x4_macropad_default.uf2
+          asset_name: jacco_4x4_macropad_default.uf2
+          asset_content_type: application/octet-stream
