@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: jacco_4x4_macropad-firmware
-          path: qmk_firmware/.build/**
+          path: qmk_firmware/.build/*.uf2
           include-hidden-files: true
           if-no-files-found: error
 
@@ -66,4 +66,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            qmk_firmware/.build/**
+            qmk_firmware/.build/*.uf2
