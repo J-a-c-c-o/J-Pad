@@ -83,7 +83,7 @@ void load_default_macros(void)
         macros[l][7][0].keys[0] = KC_MUTE;
         macros[l][7][0].key_count = 1;
         macro_len[l][7] = 1;
-        macros[l][11][0].keys[0] = KC_MS_BTN1;
+        macros[l][11][0].keys[0] = MS_BTN1;
         macros[l][11][0].key_count = 1;
         macro_len[l][11] = 1;
         macro_repeating[l][11] = 100;
@@ -106,8 +106,8 @@ void load_default_macros(void)
     encoder_actions[1][1] = KC_RIGHT;
     encoder_actions[2][0] = C(KC_MINS);
     encoder_actions[2][1] = C(KC_EQL);
-    encoder_actions[3][0] = KC_WH_D;
-    encoder_actions[3][1] = KC_WH_U;
+    encoder_actions[3][0] = MS_WHLD;
+    encoder_actions[3][1] = MS_WHLU;
     encoder_actions[4][0] = KC_MPRV;
     encoder_actions[4][1] = KC_MNXT;
     for (uint8_t l = 5; l < NUM_LAYERS; l++)

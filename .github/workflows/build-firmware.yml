@@ -1,0 +1,57 @@
+name: Build QMK Firmware
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "qmk-config/**"
+      - ".github/workflows/**"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "qmk-config/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip python3-venv git unzip curl libusb-1.0-0-dev gcc-arm-none-eabi binutils-arm-none-eabi dfu-util
+
+      - name: Install QMK CLI in a virtual environment
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          pip install --upgrade pip
+          pip install qmk
+
+      - name: Clone QMK Firmware
+        run: |
+          git clone --depth=1 --recursive https://github.com/qmk/qmk_firmware.git
+
+      - name: Copy custom keyboard config into QMK
+        run: |
+          mkdir -p qmk_firmware/keyboards/jacco_4x4_macropad
+          cp -R qmk-config/jacco_4x4_macropad/* qmk_firmware/keyboards/jacco_4x4_macropad/
+
+      - name: Compile firmware
+        run: |
+          . .venv/bin/activate
+          cd qmk_firmware
+          qmk compile -kb jacco_4x4_macropad -km default
+
+      - name: Upload firmware artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacco_4x4_macropad-firmware
+          path: qmk_firmware/.build/**
