@@ -75,14 +75,27 @@ void load_default_macros(void)
         macros[l][3][0].keys[0] = SWITCH_LAYER_0;
         macros[l][3][0].key_count = 1;
         macro_len[l][3] = 1;
-
-        macros[l][6][0].keys[0] = KC_LCTL;
-        macros[l][6][0].keys[1] = KC_C;
-        macros[l][6][0].key_count = 2;
+        macros[l][4][0].keys[0] = KC_F13;
+        macros[l][4][0].key_count = 1;
+        macro_len[l][4] = 1;
+        macros[l][5][0].keys[0] = KC_F14;
+        macros[l][5][0].key_count = 1;
+        macro_len[l][5] = 1;
+        macros[l][6][0].keys[0] = KC_F15;
+        macros[l][6][0].key_count = 1;
         macro_len[l][6] = 1;
         macros[l][7][0].keys[0] = KC_MUTE;
         macros[l][7][0].key_count = 1;
         macro_len[l][7] = 1;
+        macros[l][8][0].keys[0] = KC_F16;
+        macros[l][8][0].key_count = 1;
+        macro_len[l][8] = 1;
+        macros[l][9][0].keys[0] = KC_F17;
+        macros[l][9][0].key_count = 1;
+        macro_len[l][9] = 1;
+        macros[l][10][0].keys[0] = KC_F18;
+        macros[l][10][0].key_count = 1;
+        macro_len[l][10] = 1;
         macros[l][11][0].keys[0] = MS_BTN1;
         macros[l][11][0].key_count = 1;
         macro_len[l][11] = 1;
@@ -302,7 +315,7 @@ void raw_hid_receive(uint8_t *data, uint8_t length)
     }
     else if (command == SET_REPEATING_MACRO_COMMAND)
     {
-        if (length != 6)
+        if (length < 5)
         {
             printf("Received invalid repeating macro raw HID packet length %d\n", length);
             return;

@@ -2,7 +2,7 @@ import sys
 import hid
 from time import sleep
 
-from keycode_converter import step
+from keycode_converter import keycode, step
 
 vendor_id     = 0xfeed
 product_id    = 0x0000
@@ -12,7 +12,9 @@ usage         = 0x61
 report_length = 32
 fragment_payload_size = 27
 
+ENCODER_COMMAND = 0
 COMMAND = 1
+REPEAT_COMMAND = 2
 
 def get_raw_hid_interface():
     device_interfaces = hid.enumerate(vendor_id, product_id)
@@ -70,6 +72,39 @@ def send_fragmented_macro_update(layer, macro_index, macro_steps):
     transaction_id = 1
     send_fragmented_report(transaction_id, payload)
 
+
+def build_encoder_update(layer, clockwise_action, counterclockwise_action):
+    return [
+        ENCODER_COMMAND,
+        layer,
+        (clockwise_action >> 8) & 0xFF,
+        clockwise_action & 0xFF,
+        (counterclockwise_action >> 8) & 0xFF,
+        counterclockwise_action & 0xFF,
+    ]
+
+
+def send_encoder_update(layer, clockwise_action, counterclockwise_action):
+    payload = build_encoder_update(layer, clockwise_action, counterclockwise_action)
+    send_raw_report(payload)
+
+
+def build_repeating_macro_update(layer, macro_index, repeat_interval):
+    return [
+        REPEAT_COMMAND,
+        layer,
+        macro_index,
+        (repeat_interval >> 8) & 0xFF,
+        repeat_interval & 0xFF,
+        0,
+    ]
+
+
+def send_repeating_macro_update(layer, macro_index, repeat_interval):
+    payload = build_repeating_macro_update(layer, macro_index, repeat_interval)
+    send_raw_report(payload)
+
+
 if __name__ == '__main__':
     # On layer 0, key 4 goes to layer 5.
     send_fragmented_macro_update(
@@ -85,9 +120,23 @@ if __name__ == '__main__':
         macro_steps=[step("LCTL(KC_C)")],
     )
 
+    # Configure the encoder for layer 5 to control screen brightness.
+    send_encoder_update(
+        layer=5,
+        clockwise_action=keycode("KC_A"),
+        counterclockwise_action=keycode("KC_B"),
+    )
+
     # On layer 5, key 4 returns to layer 0.
     send_fragmented_macro_update(
         layer=5,
         macro_index=4,
         macro_steps=[step("SWITCH_LAYER_0")],
+    )
+
+    # Make layer 5 key 6 repeat its macro every 100ms until pressed again.
+    send_repeating_macro_update(
+        layer=5,
+        macro_index=5,
+        repeat_interval=100,
     )

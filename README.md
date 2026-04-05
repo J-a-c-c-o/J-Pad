@@ -73,7 +73,8 @@ The firmware expects raw HID packets to update:
 The sample script in `host/main.py` demonstrates:
 
 - setting layer 0 key 4 to switch to layer 5
-- setting layer 5 key 5 to send `Ctrl+C`
+- setting layer 5 key 5 to send `Ctrl+C` and erpeating every 100ms until pressed again
+- setting layer 5 rotary encoder actions to send `a` and `b`
 - setting layer 5 key 4 to return to layer 0
 
 ### Run the host script
