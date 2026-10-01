@@ -1,0 +1,10 @@
+[package]
+name = "jpad"
+version = "0.1.0"
+description = "Configuration tool for the J-Pad macropad"
+edition = "2024"
+
+[dependencies]
+eframe = "0.34.1"
+egui = "0.34.1"
+hidapi = "2.6"
