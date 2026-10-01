@@ -1,6 +1,6 @@
 {
   "manufacturer": "Jacco te Poel",
-  "keyboard_name": "jacco_4x4_macropad",
+  "keyboard_name": "jpad_4x4_macropad",
   "maintainer": "J-A-C-C-O",
   "bootloader": "rp2040",
   "diode_direction": "COL2ROW",

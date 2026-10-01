@@ -133,7 +133,7 @@ The following photos show the progression of wiring the macropad:
    - Pico should appear as mass storage device (RPI-RP2)
 
 2. **Flash firmware**
-   - Copy `firmware/jacco_4x4_macropad_default.uf2` to RPI-RP2 drive
+   - Copy `firmware/jpad_4x4_macropad_default.uf2` to RPI-RP2 drive
    - Device will reboot automatically
 
 3. **Function test**
