@@ -33,7 +33,7 @@ jobs:
           pip install qmk
 
       - name: Clone QMK Firmware
-        run: git clone --depth=1 --recursive https://github.com/qmk/qmk_firmware.git
+        run: git clone --depth=1 --recursive --branch 0.34.6 https://github.com/qmk/qmk_firmware.git
 
       - name: Copy custom keyboard config into QMK
         run: |
@@ -76,6 +76,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Install system libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libudev-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
